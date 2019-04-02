@@ -5,13 +5,30 @@ using Microsoft.Data.Sqlite;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using McMaster.Extensions.CommandLineUtils;
 
 namespace ConsoleApp9
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static int Main(string[] args)
         {
+            var application = new CommandLineApplication();
+            application.HelpOption();
+            var tokenOption = application.Option("-gat|--github-access-token <ACCESSTOKEN>", 
+                "The github personal access token required to query the repository", 
+                CommandOptionType.SingleValue);
+            application.OnExecute(async () =>
+            {
+                var token = tokenOption.Value();
+                await PrintGithubStatistics(token);
+            });
+            return application.Execute();
+        }
+
+        private static async Task PrintGithubStatistics(string token)
+        {
+            
             var owner = "aspnet";
             var repoName = "aspnetcore";
 

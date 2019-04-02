@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.3.3" />
     <PackageReference Include="Microsoft.Data.SQLite" Version="2.2.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.2.3" />
