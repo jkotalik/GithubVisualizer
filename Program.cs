@@ -1,11 +1,11 @@
 using Octokit;
 using System;
 using System.Threading.Tasks;
-using Microsoft.Data.Sqlite;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.Configuration;
 
 namespace ConsoleApp9
 {
@@ -18,20 +18,21 @@ namespace ConsoleApp9
             var tokenOption = application.Option("-gat|--github-access-token <ACCESSTOKEN>", 
                 "The github personal access token required to query the repository", 
                 CommandOptionType.SingleValue);
+            // Add option for connection string
             application.OnExecute(async () =>
             {
                 var token = tokenOption.Value();
-                await PrintGithubStatistics(token);
+                await PrintGithubStatistics();
             });
             return application.Execute();
         }
-
+        
         // Three steps for flow
         // 1. Acquire and update data from github
         // 2. calculate important stats from data
         // 3. Send data to be visualized.
 
-        private static async Task PrintGithubStatistics(string token)
+        private static async Task PrintGithubStatistics()
         {
             var owner = "aspnet";
             var repoName = "aspnetcore";
@@ -43,20 +44,19 @@ namespace ConsoleApp9
             // average time for PR from open reviewed
             // How to cache stuff
 
-            // How to make this extensible
-
             // calculate averages each time, but don't 
             // Things to enumerate
             // repos
             // issues
             // pull requests
             // checks per commit
-            using (var db = new CheckContext(""))
+            var configBuilder = new ConfigurationBuilder()
+              .AddUserSecrets<AdminInformation>();
+            var root = configBuilder.Build();
+            var token = root["token"];
+
+            using (var db = new CheckContext())
             {
-                foreach (var check in db.CheckTypes.Include(b => b.Checks).ToList())
-                {
-                    Console.WriteLine(" - {0}", check.Name);
-                }
                 try
                 {
                     var client = new GitHubClient(new ProductHeaderValue("aspnetcore"));
@@ -64,11 +64,17 @@ namespace ConsoleApp9
                     //client.Credentials = new Credentials(token);
                     //var pullRequests = await client.PullRequest.GetAllForRepository(owner, repoName);
                     //var res = await client.Repository.GetAllForCurrent();
-                    var pullRequests = await client.PullRequest.GetAllForRepository(owner, repoName);
+                    var prRequest = new PullRequestRequest();
+                    prRequest.State = ItemStateFilter.All;
+                    prRequest.Base = "master";
+                    prRequest.SortDirection = SortDirection.Descending;
+                    var pullRequests = await client.PullRequest.GetAllForRepository(owner, repoName, prRequest);
+                    // Get all closed pull requests too.
                     // should be able to updated - created?
                     // after getting the checks, how do I get info from it.
-                    foreach (var pr in pullRequests)
+                    for (var i = 0; i < 100; i++)
                     {
+                        var pr = pullRequests[i];
                         // check if pr is pointing to master
                         var checks = await client.Check.Run.GetAllForReference(owner, repoName, pr.Head.Sha);
                         foreach (var check in checks.CheckRuns)
@@ -84,25 +90,23 @@ namespace ConsoleApp9
                                 continue;
                             }
 
-                            CheckType checkModel = await db.CheckTypes.FirstOrDefaultAsync(c => c.Name == check.Name);
+                            CheckType checkModel = await db.CheckTypes.Include(c => c.Checks).FirstOrDefaultAsync(c => c.Name == check.Name);
                             if (checkModel == null)
                             {
-                                var ck = new Check { PullRequestName = check.Name, TimeTaken = finished.Value - start};
+                                var ck = new Check { PullRequestName = pr.Url, SHA = pr.Head.Sha, TimeTaken = (finished.Value - start).TotalMinutes, Start = start, Finished = finished.Value};
                                 checkModel = new CheckType { Name = check.Name, Checks = new List<Check>{ ck } };
                                 db.CheckTypes.Add(checkModel);
                             }
                             else
                             {
-                                var c2 = await db.Checks.FirstOrDefaultAsync(c => c.PullRequestName == pr.Url && c.CheckType.Name == check.Name);
-                                if (c2 == null)
+                                var check2 = await db.Checks.FirstOrDefaultAsync(c => c.PullRequestName == pr.Url && c.CheckType.Name == check.Name);
+                                if (check2 == null)
                                 {
-                                    var ck = new Check { PullRequestName = pr.Url, TimeTaken = finished.Value - start};
+                                    var ck = new Check { PullRequestName = pr.Url, SHA = pr.Head.Sha, TimeTaken = (finished.Value - start).TotalMinutes, Start = start, Finished = finished.Value };
                                     checkModel.Checks.Add(ck);
                                 }
                             }
                             var count = db.SaveChanges();
-              
-                            Console.WriteLine("{0} records saved to database", count);
                         }
                     }
                 }
@@ -110,20 +114,11 @@ namespace ConsoleApp9
                 {
                     Console.WriteLine(ex.Message);
                 }
-                foreach (var l in db.CheckTypes)
-                {
-                    Console.WriteLine(l.Name);
-                    var total = TimeSpan.Zero;
-                    var count = 0;
-                    foreach (var i in l.Checks)
-                    {
-                        total += i.TimeTaken;
-                        count++;
-                    }
-
-                    Console.WriteLine($"Average time {total / count}");
-                }
             }
         }
+        // Timestamps
+        // per commit
+        // Just track aspnetcore-ci
+        // port to 3.0
     }
 }
