@@ -7,12 +7,16 @@ namespace ConsoleApp9
 {
     public class CheckContext : DbContext
     {
+        public CheckContext(string connectionString)
+        {
+            
+        }
         public DbSet<CheckType> CheckTypes { get; set; }
         public DbSet<Check> Checks { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=checks.db");
+            optionsBuilder.UseSqlServer(@"");
         }
     }
 

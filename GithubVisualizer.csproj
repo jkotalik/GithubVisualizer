@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.Data.SQLite" Version="2.2.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.2.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.2.3" />
     <PackageReference Include="Octokit" Version="0.32.0" />
   </ItemGroup>
 

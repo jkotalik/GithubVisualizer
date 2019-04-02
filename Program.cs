@@ -26,9 +26,13 @@ namespace ConsoleApp9
             return application.Execute();
         }
 
+        // Three steps for flow
+        // 1. Acquire and update data from github
+        // 2. calculate important stats from data
+        // 3. Send data to be visualized.
+
         private static async Task PrintGithubStatistics(string token)
         {
-            
             var owner = "aspnet";
             var repoName = "aspnetcore";
 
@@ -47,7 +51,7 @@ namespace ConsoleApp9
             // issues
             // pull requests
             // checks per commit
-            using (var db = new CheckContext())
+            using (var db = new CheckContext(""))
             {
                 foreach (var check in db.CheckTypes.Include(b => b.Checks).ToList())
                 {
